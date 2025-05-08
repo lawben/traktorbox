@@ -123,7 +123,7 @@ class Track:
         return t
 
 @dataclass
-class PlaylistTree:
+class Playlist:
     parent_id: int
     sort_order: int
     playlist_id: int
@@ -137,10 +137,10 @@ class PlaylistTree:
 
     @staticmethod
     def from_bytes(page_data, row_offset):
-        header = page_data[row_offset:row_offset + PlaylistTree.NUM_BYTES_HEADER]
-        p = PlaylistTree()
+        header = page_data[row_offset:row_offset + Playlist.NUM_BYTES_HEADER]
+        p = Playlist()
         p.parent_id, _, p.sort_order, p.playlist_id, p.raw_is_folder = struct.unpack('iiiii', header)
-        p.name = string_from_bytes(page_data, row_offset + PlaylistTree.NUM_BYTES_HEADER)
+        p.name = string_from_bytes(page_data, row_offset + Playlist.NUM_BYTES_HEADER)
         return p
 
 
@@ -165,11 +165,29 @@ class TablePointer:
     first_page: int
     last_page: int
 
+class ExportDB:
+    tracks: dict[int, Track] = {}
+    # genres: dict[int, Genre]
+    # artists: dict[int, Artist]
+    # albums: dict[int, Album]
+    # labels: dict[int, Label]
+    # keys: dict[int, Key]
+    # colors: dict[int, Color]
+    playlists: dict[int, Playlist] = {}
+    playlist_entries: list[PlaylistEntry] = []
+    # covers: dict[int, Cover]
+    # columns: dict[int, Column]
+    # history_playlists: dict[int, HistoryPlaylist]
+    # history_playlist_entries: dict[int, HistoryPlaylistEntries]
+    # history: dict[int, History]
 
-def parse_export_pdb(data):
+
+def parse_export_pdb(data) -> ExportDB:
     """
     Based on analysis from: https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html
     """
+    export_db = ExportDB()
+
     # Header
     offset = 0
     num_bytes_header = 28
@@ -226,14 +244,17 @@ def parse_export_pdb(data):
                     if page_type == TableType.TRACKS.value:
                         track = Track.from_bytes(page_data, row_pos)
                         print(track)
+                        export_db.tracks[track.track_id] = track
 
                     if page_type == TableType.PLAYLIST_TREE.value:
-                        pl_tree = PlaylistTree.from_bytes(page_data, row_pos)
-                        print(pl_tree)
+                        playlist = Playlist.from_bytes(page_data, row_pos)
+                        print(playlist)
+                        export_db.playlists[playlist.playlist_id] = playlist
 
                     if page_type == TableType.PLAYLIST_ENTRIES.value:
                         pl_entry = PlaylistEntry.from_bytes(page_data, row_pos)
                         print(pl_entry)
+                        export_db.playlist_entries.append(pl_entry)
 
 
             # End of page traversal
@@ -241,3 +262,5 @@ def parse_export_pdb(data):
                 break
 
             page_idx = next_page
+
+    return export_db
