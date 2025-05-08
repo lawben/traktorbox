@@ -80,14 +80,18 @@ class Track:
     file_name: str = ""
     file_path: str = ""
 
+    NUM_BYTES_BASE_TRACK_ROW = 94
+    NUM_BYTES_TRACK_ROW_STRING_OFFSETS = 42
+    NUM_BYTES_HEADER = NUM_BYTES_BASE_TRACK_ROW + NUM_BYTES_TRACK_ROW_STRING_OFFSETS
+
     def __init__(self):
         pass
 
     @staticmethod
     def from_bytes(page_data, row_offset):
-        header = page_data[row_offset:row_offset + NUM_BYTES_TRACK_ROW]
-        raw_track = struct.unpack('hhiiiiihhiiiiiiiiiiiihhhhhhBBhh', header[:NUM_BYTES_BASE_TRACK_ROW])
-        string_offsets = struct.unpack('h' * 21, header[NUM_BYTES_BASE_TRACK_ROW:])
+        header = page_data[row_offset:row_offset + Track.NUM_BYTES_HEADER]
+        raw_track = struct.unpack('hhiiiiihhiiiiiiiiiiiihhhhhhBBhh', header[:Track.NUM_BYTES_BASE_TRACK_ROW])
+        string_offsets = struct.unpack('h' * 21, header[Track.NUM_BYTES_BASE_TRACK_ROW:])
 
         t = Track()
         (_, t.i_shift, t.bitmask, t.sample_rate, t.composer_id, t.file_size, _, _, _, t.artwork_id, t.key_id,
@@ -118,17 +122,48 @@ class Track:
 
         return t
 
+@dataclass
+class PlaylistTree:
+    parent_id: int
+    sort_order: int
+    playlist_id: int
+    raw_is_folder: bool
+    name: str
+
+    NUM_BYTES_HEADER = 20
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def from_bytes(page_data, row_offset):
+        header = page_data[row_offset:row_offset + PlaylistTree.NUM_BYTES_HEADER]
+        p = PlaylistTree()
+        p.parent_id, _, p.sort_order, p.playlist_id, p.raw_is_folder = struct.unpack('iiiii', header)
+        p.name = string_from_bytes(page_data, row_offset + PlaylistTree.NUM_BYTES_HEADER)
+        return p
+
+
+@dataclass
+class PlaylistEntry:
+    entry_index: int
+    track_id: int
+    playlist_id: int
+
+    NUM_BYTES_HEADER = 12
+
+    @staticmethod
+    def from_bytes(page_data, row_offset):
+        header = page_data[row_offset:row_offset + PlaylistEntry.NUM_BYTES_HEADER]
+        return PlaylistEntry(*(struct.unpack('iii', header)))
+
+
 
 @dataclass
 class TablePointer:
     table_type: TableType
     first_page: int
     last_page: int
-
-
-NUM_BYTES_BASE_TRACK_ROW = 94
-NUM_BYTES_TRACK_ROW_STRING_OFFSETS = 42
-NUM_BYTES_TRACK_ROW = NUM_BYTES_BASE_TRACK_ROW + NUM_BYTES_TRACK_ROW_STRING_OFFSETS
 
 
 def parse_export_pdb(data):
@@ -186,10 +221,20 @@ def parse_export_pdb(data):
                     if row_mask & (1 << i) == 0:
                         continue
 
+                    row_pos = num_bytes_table_page + row_offset
+
                     if page_type == TableType.TRACKS.value:
-                        row_pos = num_bytes_table_page + row_offset
                         track = Track.from_bytes(page_data, row_pos)
                         print(track)
+
+                    if page_type == TableType.PLAYLIST_TREE.value:
+                        pl_tree = PlaylistTree.from_bytes(page_data, row_pos)
+                        print(pl_tree)
+
+                    if page_type == TableType.PLAYLIST_ENTRIES.value:
+                        pl_entry = PlaylistEntry.from_bytes(page_data, row_pos)
+                        print(pl_entry)
+
 
             # End of page traversal
             if page_idx == table_pointer.last_page:
