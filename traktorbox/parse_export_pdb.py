@@ -43,6 +43,29 @@ class TableType(Enum):
     HISTORY = 0x13
     UNKNOWN = 0x14
 
+@dataclass
+class Artist:
+    artist_id: int
+    name: str = ""
+
+    def __init__(self):
+        pass
+
+    NUM_BYTES_HEADER = 12
+
+    @staticmethod
+    def from_bytes(page_data, row_offset):
+        a = Artist()
+
+        raw_artist = struct.unpack('hhiBBh', page_data[row_offset:row_offset + Artist.NUM_BYTES_HEADER])
+        subtype, _, a.artist_id, _, name_offset_short, name_offset_long = raw_artist
+
+        if subtype == 0x60:
+            a.name = string_from_bytes(page_data, row_offset + name_offset_short)
+        elif subtype == 0x64:
+            a.name = string_from_bytes(page_data, row_offset + name_offset_long)
+
+        return a
 
 @dataclass
 class Track:
@@ -170,20 +193,19 @@ class TablePointer:
 
 class ExportDB:
     tracks: dict[int, Track] = {}
-    # genres: dict[int, Genre]
-    # artists: dict[int, Artist]
-    # albums: dict[int, Album]
-    # labels: dict[int, Label]
-    # keys: dict[int, Key]
-    # colors: dict[int, Color]
+    # genres: dict[int, Genre] = {}
+    artists: dict[int, Artist] = {}
+    # albums: dict[int, Album] = {}
+    # labels: dict[int, Label] = {}
+    # keys: dict[int, Key] = {}
+    # colors: dict[int, Color] = {}
     playlists: dict[int, Playlist] = {}
     playlist_entries: list[PlaylistEntry] = []
-    # covers: dict[int, Cover]
-    # columns: dict[int, Column]
-    # history_playlists: dict[int, HistoryPlaylist]
-    # history_playlist_entries: dict[int, HistoryPlaylistEntries]
-    # history: dict[int, History]
-
+    # covers: dict[int, Cover] = {}
+    # columns: dict[int, Column] = {}
+    # history_playlists: dict[int, HistoryPlaylist] = {}
+    # history_playlist_entries: dict[int, HistoryPlaylistEntries] = {}
+    # history: dict[int, History] = {}
 
 def parse_export_pdb(data) -> ExportDB:
     """
@@ -243,6 +265,11 @@ def parse_export_pdb(data) -> ExportDB:
                         continue
 
                     row_pos = num_bytes_table_page + row_offset
+
+                    if page_type == TableType.ARTISTS.value:
+                        artist = Artist.from_bytes(page_data, row_pos)
+                        print(artist)
+                        export_db.artists[artist.artist_id] = artist
 
                     if page_type == TableType.TRACKS.value:
                         track = Track.from_bytes(page_data, row_pos)

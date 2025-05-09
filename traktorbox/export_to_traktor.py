@@ -80,7 +80,7 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
 
             entry = ET.SubElement(collection, "ENTRY",
                                   MODIFIED_DATE=modified_date, MODIFIED_TIME=modified_time,
-                                  AUDIO_ID="TODO", TITLE=track.title, ARTIST="TODO")
+                                  AUDIO_ID="TODO", TITLE=track.title, ARTIST=export_db.artists[track.artist_id].name)
 
             ET.SubElement(entry, "LOCATION",
                           DIR=f"/:{TRAKTOR_PATH_ID}/:", FILE=track.file_name,
