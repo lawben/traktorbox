@@ -86,7 +86,7 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
                           DIR=f"/:{TRAKTOR_PATH_ID}/:", FILE=track.file_name,
                           VOLUME=usb_volume, VOLUMEID=usb_volume)
 
-            ET.SubElement(entry, "ALBUM", TRACK=str(track.track_number), TITLE="TODO")
+            ET.SubElement(entry, "ALBUM", TRACK=str(track.track_number), TITLE=export_db.albums[track.album_id].name)
             ET.SubElement(entry, "MODIFICATION_INFO", AUTHOR_TYPE="user")
 
             ET.SubElement(entry, "INFO",

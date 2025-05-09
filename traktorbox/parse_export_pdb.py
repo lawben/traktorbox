@@ -44,6 +44,25 @@ class TableType(Enum):
     UNKNOWN = 0x14
 
 @dataclass
+class Album:
+    artist_id: int
+    album_id: int
+    name: str = ""
+
+    def __init__(self):
+        pass
+
+    NUM_BYTES_HEADER = 22
+
+    @staticmethod
+    def from_bytes(page_data, row_offset):
+        a = Album()
+        raw_album = struct.unpack('hhiiiiBB', page_data[row_offset:row_offset + Album.NUM_BYTES_HEADER])
+        _, _, _, a.artist_id, a.album_id, _, _, name_offset = raw_album
+        a.name = string_from_bytes(page_data, row_offset + name_offset)
+        return a
+
+@dataclass
 class Artist:
     artist_id: int
     name: str = ""
@@ -195,7 +214,7 @@ class ExportDB:
     tracks: dict[int, Track] = {}
     # genres: dict[int, Genre] = {}
     artists: dict[int, Artist] = {}
-    # albums: dict[int, Album] = {}
+    albums: dict[int, Album] = {}
     # labels: dict[int, Label] = {}
     # keys: dict[int, Key] = {}
     # colors: dict[int, Color] = {}
@@ -270,6 +289,11 @@ def parse_export_pdb(data) -> ExportDB:
                         artist = Artist.from_bytes(page_data, row_pos)
                         print(artist)
                         export_db.artists[artist.artist_id] = artist
+
+                    if page_type == TableType.ALBUMS.value:
+                        album = Album.from_bytes(page_data, row_pos)
+                        print(album)
+                        export_db.albums[album.album_id] = album
 
                     if page_type == TableType.TRACKS.value:
                         track = Track.from_bytes(page_data, row_pos)
