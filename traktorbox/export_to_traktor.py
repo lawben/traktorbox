@@ -1,11 +1,12 @@
 import os
 import uuid
 import xml.etree.ElementTree as ET
+from pathlib import Path
 from datetime import datetime
 
 from traktorbox.parse_export_pdb import ExportDB
 
-TRAKTOR_PATH_ID = "traktor"
+TRAKTOR_PATH_ID = "TRAKTOR"
 
 
 def convert_to_traktor_date(date: str) -> str:
@@ -17,9 +18,25 @@ def convert_to_traktor_date(date: str) -> str:
 
 def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
     traktor_path = os.path.join(usb_path, TRAKTOR_PATH_ID)
-    os.makedirs(traktor_path, exist_ok=True)
+
+    if os.path.exists(traktor_path):
+        os.remove(traktor_path)
+    os.makedirs(traktor_path)
 
     usb_volume = os.path.basename(usb_path)
+
+    for track in export_db.tracks.values():
+        symlink_path = Path(traktor_path, track.file_name)
+
+        unique_counter = 2
+        while symlink_path.is_symlink():
+            # Make shortended file name unique as we use it again later.The exact name is irrelevant.
+            track.file_name = f"{unique_counter}-{track.file_name}"
+            symlink_path = Path(traktor_path, track.file_name)
+            unique_counter += 1
+
+        symlink_path.symlink_to(f"../{track.file_path}") # make path relative
+
 
     for playlist in export_db.playlists.values():
         # Do nothing for folders, as traktor exports are flat,
@@ -106,7 +123,7 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
         playlist_node = ET.SubElement(subnodes, "NODE", TYPE="PLAYLIST", NAME=playlist.name)
 
         playlist = ET.SubElement(playlist_node, "PLAYLIST",
-                                 ENTRIES=str(len(entries)), TYPE="LIST", UUID=str(uuid.uuid4()))
+                                 ENTRIES=str(len(entries)), TYPE="LIST", UUID=str(uuid.uuid4()).replace('-', ''))
 
         for pl_entry in entries:
             track = export_db.tracks[pl_entry.track_id]

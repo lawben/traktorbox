@@ -16,8 +16,8 @@ def string_from_bytes(page_data, offset) -> str:
     # is_ascii = meta & (1 << 6)
     # is_little_endian = meta & (1 << 7)
 
-    str_len = struct.unpack('h', page_data[offset+1:offset+3])[0]
-    return str(page_data[offset+4:offset+str_len], 'utf-16' if is_utf16 else 'utf-8' if is_utf8 else 'ascii')
+    str_len = struct.unpack('h', page_data[offset + 1:offset + 3])[0]
+    return str(page_data[offset + 4:offset + str_len], 'utf-16' if is_utf16 else 'utf-8' if is_utf8 else 'ascii')
 
 
 class TableType(Enum):
@@ -125,6 +125,7 @@ class Track:
 
         return t
 
+
 @dataclass
 class Playlist:
     parent_id: int
@@ -159,7 +160,6 @@ class PlaylistEntry:
     def from_bytes(page_data, row_offset):
         header = page_data[row_offset:row_offset + PlaylistEntry.NUM_BYTES_HEADER]
         return PlaylistEntry(*(struct.unpack('iii', header)))
-
 
 
 @dataclass
@@ -258,7 +258,6 @@ def parse_export_pdb(data) -> ExportDB:
                         pl_entry = PlaylistEntry.from_bytes(page_data, row_pos)
                         print(pl_entry)
                         export_db.playlist_entries.append(pl_entry)
-
 
             # End of page traversal
             if page_idx == table_pointer.last_page:
