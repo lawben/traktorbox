@@ -87,6 +87,16 @@ class Artist:
         return a
 
 @dataclass
+class Artwork:
+    artwork_id: int
+    path: str = ""
+
+    @staticmethod
+    def from_bytes(page_data, row_offset):
+        return Artwork(struct.unpack('i', page_data[row_offset:row_offset + 4])[0],
+                       string_from_bytes(page_data, row_offset + 4))
+
+@dataclass
 class Track:
     bitmask: int
     sample_rate: int
@@ -220,7 +230,7 @@ class ExportDB:
     # colors: dict[int, Color] = {}
     playlists: dict[int, Playlist] = {}
     playlist_entries: list[PlaylistEntry] = []
-    # covers: dict[int, Cover] = {}
+    artwork: dict[int, Artwork] = {}
     # columns: dict[int, Column] = {}
     # history_playlists: dict[int, HistoryPlaylist] = {}
     # history_playlist_entries: dict[int, HistoryPlaylistEntries] = {}
@@ -294,6 +304,11 @@ def parse_export_pdb(data) -> ExportDB:
                         album = Album.from_bytes(page_data, row_pos)
                         print(album)
                         export_db.albums[album.album_id] = album
+
+                    if page_type == TableType.ARTWORK.value:
+                        artwork = Artwork.from_bytes(page_data, row_pos)
+                        print(artwork)
+                        export_db.artwork[artwork.artwork_id] = artwork
 
                     if page_type == TableType.TRACKS.value:
                         track = Track.from_bytes(page_data, row_pos)
