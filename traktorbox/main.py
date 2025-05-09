@@ -1,6 +1,7 @@
 import argparse
 
 from parse_export_pdb import parse_export_pdb
+from export_to_traktor import export_to_traktor
 import os
 
 if __name__ == '__main__':
@@ -23,3 +24,4 @@ if __name__ == '__main__':
         data = f.read()
 
     export_db = parse_export_pdb(data)
+    export_to_traktor(usb_path, export_db)

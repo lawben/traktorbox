@@ -57,7 +57,7 @@ class Track:
     remixer_id: int
     bitrate: int
     track_number: int
-    tempo: int
+    tempo: float
     genre_id: int
     album_id: int
     artist_id: int
@@ -95,9 +95,12 @@ class Track:
 
         t = Track()
         (_, t.i_shift, t.bitmask, t.sample_rate, t.composer_id, t.file_size, _, _, _, t.artwork_id, t.key_id,
-         t.orig_artist_id, t.label_id, t.remixer_id, t.bitrate, t.track_number, t.tempo, t.genre_id, t.album_id,
+         t.orig_artist_id, t.label_id, t.remixer_id, t.bitrate, t.track_number, tempo, t.genre_id, t.album_id,
          t.artist_id, t.track_id, t.disc_number, t.play_count, t.year, t.sample_depth, t.duration_in_s, _, t.color_id,
          t.rating, _, _) = raw_track
+
+        # Tempo is stored *100 for higher precision.
+        t.tempo = tempo / 100
 
         for i, offset in enumerate(string_offsets[1:], 1):
             str_data = string_from_bytes(page_data, row_offset + offset)
