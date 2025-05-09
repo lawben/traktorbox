@@ -2,7 +2,6 @@ import os
 import shutil
 import uuid
 import xml.etree.ElementTree as ET
-from pathlib import Path
 from datetime import datetime
 
 from traktorbox.parse_export_pdb import ExportDB
@@ -91,8 +90,8 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
             ET.SubElement(entry, "MODIFICATION_INFO", AUTHOR_TYPE="user")
 
             ET.SubElement(entry, "INFO",
-                          BITRATE=str(track.bitrate), GENRE=export_db.genres[track.genre_id].name,
-                          LABEL="TODO", KEY=export_db.keys[track.key_id].name, FLAGS="TODO",
+                          BITRATE=str(track.bitrate), GENRE=export_db.genres[track.genre_id].name, FLAGS="TODO",
+                          LABEL=export_db.labels[track.label_id].name, KEY=export_db.keys[track.key_id].name,
                           PLAYTIME=str(track.duration_in_s), PLAYTIME_FLOAT=str(float(track.duration_in_s)),
                           IMPORT_DATE=convert_to_traktor_date(track.date_added),
                           RELEASE_DATE=convert_to_traktor_date(track.release_date))
