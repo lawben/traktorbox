@@ -125,6 +125,16 @@ class Genre:
         return Genre(struct.unpack('i', page_data[row_offset:row_offset + 4])[0],
                      string_from_bytes(page_data, row_offset + 4))
 
+@dataclass
+class Key:
+    key_id: int
+    name: str = ""
+
+    @staticmethod
+    def from_bytes(page_data, row_offset):
+        return Key(struct.unpack('i', page_data[row_offset:row_offset + 4])[0],
+                     string_from_bytes(page_data, row_offset + 8))
+
 
 @dataclass
 class Track:
@@ -257,15 +267,22 @@ class ExportDB:
     artwork: dict[int, Artwork] = {}
     colors: dict[int, Color] = {}
     genres: dict[int, Genre] = {}
-    tracks: dict[int, Track] = {}
+    # history_playlists: dict[int, HistoryPlaylist] = {}
+    # history_playlist_entries: dict[int, HistoryPlaylistEntries] = {}
+    keys: dict[int, Key] = {}
     # labels: dict[int, Label] = {}
-    # keys: dict[int, Key] = {}
     playlists: dict[int, Playlist] = {}
     playlist_entries: list[PlaylistEntry] = []
     # columns: dict[int, Column] = {}
-    # history_playlists: dict[int, HistoryPlaylist] = {}
-    # history_playlist_entries: dict[int, HistoryPlaylistEntries] = {}
-    # history: dict[int, History] = {}
+    tracks: dict[int, Track] = {}
+
+    def __init__(self):
+        self.artists[0] = Artist()
+        self.albums[0] = Album()
+        self.artwork[0] = Artwork(0, "")
+        self.colors[0] = Color(0, "")
+        self.genres[0] = Genre(0, "")
+        self.keys[0] = Key(0, "")
 
 
 def parse_export_pdb(data) -> ExportDB:
@@ -351,6 +368,11 @@ def parse_export_pdb(data) -> ExportDB:
                         genre = Genre.from_bytes(page_data, row_pos)
                         print(genre)
                         export_db.genres[genre.genre_id] = genre
+
+                    if page_type == TableType.KEYS.value:
+                        key = Key.from_bytes(page_data, row_pos)
+                        print(key)
+                        export_db.keys[key.key_id] = key
 
                     if page_type == TableType.TRACKS.value:
                         track = Track.from_bytes(page_data, row_pos)

@@ -1,4 +1,5 @@
 import os
+import shutil
 import uuid
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -20,22 +21,22 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
     traktor_path = os.path.join(usb_path, TRAKTOR_PATH_ID)
 
     if os.path.exists(traktor_path):
-        os.remove(traktor_path)
+        shutil.rmtree(traktor_path, ignore_errors=True) # YOLO-delete everything
     os.makedirs(traktor_path)
 
     usb_volume = os.path.basename(usb_path)
 
     for track in export_db.tracks.values():
-        symlink_path = Path(traktor_path, track.file_name)
+        symlink_path = os.path.join(traktor_path, track.file_name)
 
         unique_counter = 2
-        while symlink_path.is_symlink():
-            # Make shortended file name unique as we use it again later.The exact name is irrelevant.
+        while os.path.islink(symlink_path):
+            # Make the shortened file name unique as we use it again later. The exact name is irrelevant.
             track.file_name = f"{unique_counter}-{track.file_name}"
-            symlink_path = Path(traktor_path, track.file_name)
+            symlink_path = os.path.join(traktor_path, track.file_name)
             unique_counter += 1
 
-        symlink_path.symlink_to(f"../{track.file_path}") # make path relative
+        os.symlink(f"../{track.file_path}", symlink_path) # make path relative
 
 
     for playlist in export_db.playlists.values():
@@ -91,7 +92,7 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
 
             ET.SubElement(entry, "INFO",
                           BITRATE=str(track.bitrate), GENRE=export_db.genres[track.genre_id].name,
-                          LABEL="TODO", KEY="TODO", FLAGS="TODO",
+                          LABEL="TODO", KEY=export_db.keys[track.key_id].name, FLAGS="TODO",
                           PLAYTIME=str(track.duration_in_s), PLAYTIME_FLOAT=str(float(track.duration_in_s)),
                           IMPORT_DATE=convert_to_traktor_date(track.date_added),
                           RELEASE_DATE=convert_to_traktor_date(track.release_date))
