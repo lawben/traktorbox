@@ -282,7 +282,6 @@ class ExportDB:
     labels: dict[int, Label] = {}
     playlists: dict[int, Playlist] = {}
     playlist_entries: list[PlaylistEntry] = []
-    # columns: dict[int, Column] = {}
     tracks: dict[int, Track] = {}
 
     def __init__(self):
