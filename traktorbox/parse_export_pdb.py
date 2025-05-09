@@ -43,6 +43,7 @@ class TableType(Enum):
     HISTORY = 0x13
     UNKNOWN = 0x14
 
+
 @dataclass
 class Album:
     artist_id: int
@@ -61,6 +62,7 @@ class Album:
         _, _, _, a.artist_id, a.album_id, _, _, name_offset = raw_album
         a.name = string_from_bytes(page_data, row_offset + name_offset)
         return a
+
 
 @dataclass
 class Artist:
@@ -86,6 +88,7 @@ class Artist:
 
         return a
 
+
 @dataclass
 class Artwork:
     artwork_id: int
@@ -95,6 +98,22 @@ class Artwork:
     def from_bytes(page_data, row_offset):
         return Artwork(struct.unpack('i', page_data[row_offset:row_offset + 4])[0],
                        string_from_bytes(page_data, row_offset + 4))
+
+
+@dataclass
+class Color:
+    color_id: int
+    name: str = ""
+
+    COLORS = ["", "pink", "red", "orange", "yellow", "green", "aqua", "blue", "purple"]
+
+    NUM_BYTES_HEADER = 8
+
+    @staticmethod
+    def from_bytes(page_data, row_offset):
+        return Color(struct.unpack('h', page_data[row_offset + 4:row_offset + 6])[0],
+                     string_from_bytes(page_data, row_offset + Color.NUM_BYTES_HEADER))
+
 
 @dataclass
 class Track:
@@ -220,6 +239,7 @@ class TablePointer:
     first_page: int
     last_page: int
 
+
 class ExportDB:
     tracks: dict[int, Track] = {}
     # genres: dict[int, Genre] = {}
@@ -227,7 +247,7 @@ class ExportDB:
     albums: dict[int, Album] = {}
     # labels: dict[int, Label] = {}
     # keys: dict[int, Key] = {}
-    # colors: dict[int, Color] = {}
+    colors: dict[int, Color] = {}
     playlists: dict[int, Playlist] = {}
     playlist_entries: list[PlaylistEntry] = []
     artwork: dict[int, Artwork] = {}
@@ -235,6 +255,7 @@ class ExportDB:
     # history_playlists: dict[int, HistoryPlaylist] = {}
     # history_playlist_entries: dict[int, HistoryPlaylistEntries] = {}
     # history: dict[int, History] = {}
+
 
 def parse_export_pdb(data) -> ExportDB:
     """
@@ -309,6 +330,11 @@ def parse_export_pdb(data) -> ExportDB:
                         artwork = Artwork.from_bytes(page_data, row_pos)
                         print(artwork)
                         export_db.artwork[artwork.artwork_id] = artwork
+
+                    if page_type == TableType.COLORS.value:
+                        color = Color.from_bytes(page_data, row_pos)
+                        print(color)
+                        export_db.colors[color.color_id] = color
 
                     if page_type == TableType.TRACKS.value:
                         track = Track.from_bytes(page_data, row_pos)

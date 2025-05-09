@@ -91,7 +91,7 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
 
             ET.SubElement(entry, "INFO",
                           BITRATE=str(track.bitrate), GENRE="TODO",
-                          LABEL="TODO", COVERARTID="TODO", KEY="TODO", FLAGS="TODO",
+                          LABEL="TODO", KEY="TODO", FLAGS="TODO",
                           PLAYTIME=str(track.duration_in_s), PLAYTIME_FLOAT=str(float(track.duration_in_s)),
                           IMPORT_DATE=convert_to_traktor_date(track.date_added),
                           RELEASE_DATE=convert_to_traktor_date(track.release_date))
