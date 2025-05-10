@@ -8,6 +8,7 @@ from pathlib import Path
 def utf16_be_str_from_bytes(data, offset) -> str:
     return str(data[offset])
 
+
 def string_from_bytes(data, offset) -> str:
     meta = struct.unpack('B', data[offset:offset + 1])[0]
 
@@ -191,7 +192,6 @@ class Cue:
 
     comment: str = ""
 
-
     NUM_BYTES_HEADER = 44
 
     def __init__(self):
@@ -202,7 +202,8 @@ class Cue:
         c = Cue()
 
         raw_cue = struct.unpack('>4sIIIBBHIIBBHIHHI', data[row_offset:row_offset + Cue.NUM_BYTES_HEADER])
-        (code, len_header, len_entry, c.hot_cue, simple_type, _, _, c.time_in_ms, c.loop_end_in_ms, c.color_id, _, _, _, loop_numerator, loop_denominator, len_comment) = raw_cue
+        (code, len_header, len_entry, c.hot_cue, simple_type, _, _, c.time_in_ms, c.loop_end_in_ms, c.color_id, _, _, _,
+         loop_numerator, loop_denominator, len_comment) = raw_cue
         assert code == b'PCP2', f"Unexpected magic bytes in Cue: {code}"
 
         c.cue_type = CueType.MEMORY if c.hot_cue == 0 else CueType.HOT
@@ -213,11 +214,11 @@ class Cue:
         if len_entry > Cue.NUM_BYTES_HEADER:
             if len_comment > 0:
                 str_pos = row_offset + Cue.NUM_BYTES_HEADER
-                c.comment = str(data[str_pos:str_pos+len_comment-2], 'utf-16be') # -2 for NUL terminator
+                c.comment = str(data[str_pos:str_pos + len_comment - 2], 'utf-16be')  # -2 for NUL terminator
 
         if len_entry > Cue.NUM_BYTES_HEADER + len_comment:
             cue_rgb_offset = row_offset + Cue.NUM_BYTES_HEADER + len_comment
-            c.hot_cue_color_id, r, g, b = struct.unpack('BBBB', data[cue_rgb_offset:cue_rgb_offset+4])
+            c.hot_cue_color_id, r, g, b = struct.unpack('BBBB', data[cue_rgb_offset:cue_rgb_offset + 4])
             c.hot_cue_rgb = (r, g, b)
 
         c.serialized_size = len_entry
@@ -271,7 +272,6 @@ class Track:
     title: str = ""
     file_name: str = ""
     file_path: str = ""
-
 
     NUM_BYTES_BASE_TRACK_ROW = 94
     NUM_BYTES_TRACK_ROW_STRING_OFFSETS = 42
@@ -387,6 +387,7 @@ class ExportDB:
         self.playlists = {}
         self.playlist_entries = []
         self.tracks = {}
+
 
 # Note: All values are stored as big-endian in the analysis files.
 def parse_anlz_file(data, track):
