@@ -391,6 +391,9 @@ class ExportDB:
 
 # Note: All values are stored as big-endian in the analysis files.
 def parse_anlz_file(data, track):
+    """
+    Based on analysis from: https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html
+    """
     num_bytes_anlz_header = 12
     header = struct.unpack('>4sII', data[:num_bytes_anlz_header])
     code, len_header, len_file = header

@@ -23,5 +23,5 @@ if __name__ == '__main__':
     with open(export_pdb_path, 'rb') as f:
         data = f.read()
 
-    export_db = parse_export_pdb(data)
+    export_db = parse_export_pdb(usb_path, data)
     export_to_traktor(usb_path, export_db)

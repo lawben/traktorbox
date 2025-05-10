@@ -2,7 +2,7 @@ import os
 import shutil
 import uuid
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from traktorbox.parse_export_pdb import ExportDB
 
@@ -15,6 +15,14 @@ def convert_to_traktor_date(date: str) -> str:
     year, month, day = date.split('-')
     return f"{year}/{int(month)}/{int(day)}"  # cast to int to get rid of leading 0
 
+def convert_to_traktor_color(color_id: int) -> str:
+    assert color_id > 0, "Cannot convert color_id=0"
+
+    # idx         0      1        2       3      4      5       6      7
+    # rekordbox [pink, red,    orange, yellow, green, aqua,   blue, purple]
+    # traktor   [red,  orange, yellow, green,  blue,  purple, pink]
+    mapping = [6, 0, 1, 2, 3, 4, 4, 5] # cannot convert aqua, use blue
+    return str(mapping[color_id-1] + 1)
 
 def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
     traktor_path = os.path.join(usb_path, TRAKTOR_PATH_ID)
@@ -37,6 +45,10 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
 
         os.symlink(f"../{track.file_path}", symlink_path) # make path relative
 
+    # Move slightly to the future to avoid collisions with the creation of symlinks with a newer time.
+    current_datetime = datetime.now() + timedelta(minutes=1)
+    modified_date = f"{current_datetime.year}/{current_datetime.month}/{current_datetime.day}"
+    modified_time = str(current_datetime.hour * 3600 + current_datetime.minute * 60 + current_datetime.second)
 
     for playlist in export_db.playlists.values():
         # Do nothing for folders, as traktor exports are flat,
@@ -71,16 +83,12 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
         # Collection
         collection = ET.SubElement(nml, "COLLECTION", ENTRIES=str(len(entries)))
 
-        current_datetime = datetime.now()
-        modified_date = f"{current_datetime.year}/{current_datetime.month}/{current_datetime.day}"
-        modified_time = str(current_datetime.hour * 3600 + current_datetime.minute * 60 + current_datetime.second)
-
         for pl_entry in entries:
             track = export_db.tracks[pl_entry.track_id]
 
             entry = ET.SubElement(collection, "ENTRY",
-                                  MODIFIED_DATE=modified_date, MODIFIED_TIME=modified_time,
-                                  AUDIO_ID="TODO", TITLE=track.title, ARTIST=export_db.artists[track.artist_id].name)
+                                  MODIFIED_DATE=modified_date, MODIFIED_TIME=modified_time, # AUDIO_ID="TODO",
+                                  TITLE=track.title, ARTIST=export_db.artists[track.artist_id].name)
 
             ET.SubElement(entry, "LOCATION",
                           DIR=f"/:{TRAKTOR_PATH_ID}/:", FILE=track.file_name,
@@ -89,20 +97,24 @@ def export_to_traktor(usb_path: os.PathLike, export_db: ExportDB):
             ET.SubElement(entry, "ALBUM", TRACK=str(track.track_number), TITLE=export_db.albums[track.album_id].name)
             ET.SubElement(entry, "MODIFICATION_INFO", AUTHOR_TYPE="user")
 
-            ET.SubElement(entry, "INFO",
-                          BITRATE=str(track.bitrate), GENRE=export_db.genres[track.genre_id].name, FLAGS="TODO",
+            info = ET.SubElement(entry, "INFO",
+                          GENRE=export_db.genres[track.genre_id].name, # FLAGS="TODO",
+                          COMMENT=track.comment, PLAYCOUNT=str(track.play_count),
                           LABEL=export_db.labels[track.label_id].name, KEY=export_db.keys[track.key_id].name,
                           PLAYTIME=str(track.duration_in_s), PLAYTIME_FLOAT=str(float(track.duration_in_s)),
                           IMPORT_DATE=convert_to_traktor_date(track.date_added),
                           RELEASE_DATE=convert_to_traktor_date(track.release_date))
+            if track.color_id != 0:
+                info.set('COLOR', convert_to_traktor_color(track.color_id))
+            if track.file_size != 0:
+                info.set('FILESIZE', str(track.file_size / 1024)) # convert from bytes to KiB
+            if track.bitrate != 0:
+                info.set('BITRATE', str(track.bitrate * 1000))
 
             ET.SubElement(entry, "TEMPO", BPM=str(track.tempo), BPM_QUALITY="100.000000")
 
-            # TODO
-            ET.SubElement(entry, "LOUDNESS", PEAK_DB="-0.973083", PERCEIVED_DB="-2.615662", ANALYZED_DB="-2.615662")
-
-            # TODO
-            ET.SubElement(entry, "MUSICAL_KEY", VALUE="22")
+            # Currently using KEY in INFO, as I don't know the conversion between rekordbox and traktor keys yet.
+            # ET.SubElement(entry, "MUSICAL_KEY", VALUE="TODO")
 
             # TODO
             cue = ET.SubElement(entry, "CUE_V2",
