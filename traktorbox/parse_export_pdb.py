@@ -414,7 +414,7 @@ def parse_anlz_file(data, track):
             beat_offset = tag_header_offset + 12
             for i in range(len_beats):
                 beat = Beat.from_bytes(data, beat_offset)
-                #  print(beat)  # don't print, too much noise.
+                # print(beat)  # don't print, too much noise.
                 track.analysis.beat_grid.append(beat)
                 beat_offset += Beat.NUM_BYTES_HEADER
 
