@@ -5,7 +5,7 @@ import uuid
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 
-from traktorbox.parse_export_pdb import ExportDB, CueType
+from parse_export_pdb import ExportDB, CueType
 
 TRAKTOR_PATH_ID = "TRAKTOR"
 
