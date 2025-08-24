@@ -3,7 +3,7 @@
 **This is a very basic script that I wrote for personal use. 
 I've only tested it on Mac so far.
 It only reads the rekordbox files, so it shouldn't break any existing exports. 
-Please you at your own risk :)**
+Please use at your own risk :)**
 
 Convert exported rekordbox playlists to Traktor playlists.
 Point the script to a USB Stick that contains exports from rekordbox and it will create a traktor directory on the stick with all the playlists converted.
