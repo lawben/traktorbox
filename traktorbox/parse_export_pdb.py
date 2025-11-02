@@ -492,10 +492,17 @@ def parse_export_pdb(usb_path, data) -> ExportDB:
                 f"Redundant page index does not match. Expected {page_idx}, got {redundant_page_idx}."
             assert page_type == table_pointer.table_type.value, \
                 f"Page and table type don't match. Expected: {table_pointer.table_type}, got: {TableType(page_type)})"
+            page_type = TableType(page_type)
 
             num_rows = num_rows_l if num_rows_l > num_rows_s and num_rows_l != 0x1fff else num_rows_s
+            if num_rows_s == 0:
+                num_rows = 0
+
             pages_per_group = 16
-            for rows in range(0, num_rows, pages_per_group):
+            seen_rows = 0
+            row_group = 0
+            while seen_rows < num_rows:
+                rows = row_group * pages_per_group
                 num_bytes_row_offsets = 36
                 row_offset_pos = len_page - (rows // pages_per_group * num_bytes_row_offsets) - num_bytes_row_offsets
                 raw_row_offsets = struct.unpack('H' * 18,
@@ -504,61 +511,18 @@ def parse_export_pdb(usb_path, data) -> ExportDB:
                 row_mask = reversed_raw_row_offset[1]
                 row_offsets = reversed_raw_row_offset[2:]
                 for i, row_offset in enumerate(row_offsets):
+                    seen_rows += 1
+                    if seen_rows > num_rows:
+                        break
+
                     # Row not valid anymore
                     if row_mask & (1 << i) == 0:
                         continue
 
                     row_pos = num_bytes_table_page + row_offset
+                    parse_entry(export_db, page_data, page_type, row_pos)
 
-                    if page_type == TableType.ARTISTS.value:
-                        artist = Artist.from_bytes(page_data, row_pos)
-                        print(artist)
-                        export_db.artists[artist.artist_id] = artist
-
-                    elif page_type == TableType.ALBUMS.value:
-                        album = Album.from_bytes(page_data, row_pos)
-                        print(album)
-                        export_db.albums[album.album_id] = album
-
-                    elif page_type == TableType.ARTWORK.value:
-                        artwork = Artwork.from_bytes(page_data, row_pos)
-                        print(artwork)
-                        export_db.artwork[artwork.artwork_id] = artwork
-
-                    elif page_type == TableType.COLORS.value:
-                        color = Color.from_bytes(page_data, row_pos)
-                        print(color)
-                        export_db.colors[color.color_id] = color
-
-                    elif page_type == TableType.GENRES.value:
-                        genre = Genre.from_bytes(page_data, row_pos)
-                        print(genre)
-                        export_db.genres[genre.genre_id] = genre
-
-                    elif page_type == TableType.KEYS.value:
-                        key = Key.from_bytes(page_data, row_pos)
-                        print(key)
-                        export_db.keys[key.key_id] = key
-
-                    elif page_type == TableType.LABELS.value:
-                        label = Label.from_bytes(page_data, row_pos)
-                        print(label)
-                        export_db.labels[label.label_id] = label
-
-                    elif page_type == TableType.TRACKS.value:
-                        track = Track.from_bytes(page_data, row_pos)
-                        print(track)
-                        export_db.tracks[track.track_id] = track
-
-                    elif page_type == TableType.PLAYLIST_TREE.value:
-                        playlist = Playlist.from_bytes(page_data, row_pos)
-                        print(playlist)
-                        export_db.playlists[playlist.playlist_id] = playlist
-
-                    elif page_type == TableType.PLAYLIST_ENTRIES.value:
-                        pl_entry = PlaylistEntry.from_bytes(page_data, row_pos)
-                        print(pl_entry)
-                        export_db.playlist_entries.append(pl_entry)
+                row_group += 1
 
             # End of page traversal
             if page_idx == table_pointer.last_page:
@@ -569,3 +533,47 @@ def parse_export_pdb(usb_path, data) -> ExportDB:
     parse_analysis_files(usb_path, export_db)
 
     return export_db
+
+
+def parse_entry(export_db: ExportDB, page_data, page_type: TableType, row_pos: int) -> None:
+    match page_type:
+        case TableType.ARTISTS:
+            artist = Artist.from_bytes(page_data, row_pos)
+            print(artist)
+            export_db.artists[artist.artist_id] = artist
+        case TableType.ALBUMS:
+            album = Album.from_bytes(page_data, row_pos)
+            print(album)
+            export_db.albums[album.album_id] = album
+        case TableType.ARTWORK:
+            artwork = Artwork.from_bytes(page_data, row_pos)
+            print(artwork)
+            export_db.artwork[artwork.artwork_id] = artwork
+        case TableType.COLORS:
+            color = Color.from_bytes(page_data, row_pos)
+            print(color)
+            export_db.colors[color.color_id] = color
+        case TableType.GENRES:
+            genre = Genre.from_bytes(page_data, row_pos)
+            print(genre)
+            export_db.genres[genre.genre_id] = genre
+        case TableType.KEYS:
+            key = Key.from_bytes(page_data, row_pos)
+            print(key)
+            export_db.keys[key.key_id] = key
+        case TableType.LABELS:
+            label = Label.from_bytes(page_data, row_pos)
+            print(label)
+            export_db.labels[label.label_id] = label
+        case TableType.TRACKS:
+            track = Track.from_bytes(page_data, row_pos)
+            print(track)
+            export_db.tracks[track.track_id] = track
+        case TableType.PLAYLIST_TREE:
+            playlist = Playlist.from_bytes(page_data, row_pos)
+            print(playlist)
+            export_db.playlists[playlist.playlist_id] = playlist
+        case TableType.PLAYLIST_ENTRIES:
+            pl_entry = PlaylistEntry.from_bytes(page_data, row_pos)
+            print(pl_entry)
+            export_db.playlist_entries.append(pl_entry)
